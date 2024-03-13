@@ -1,5 +1,5 @@
 from mongodb.mongodb_manager import MongoDBManager
-from neo4j.neo4j_manager import Neo4jManager
+from neo4j_custom.neo4j_manager import Neo4jManager
 from utils.visualization import visualize_mongodb_data, visualize_neo4j_data
 
 class App:
