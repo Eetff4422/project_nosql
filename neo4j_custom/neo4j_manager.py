@@ -67,11 +67,11 @@ class Neo4jManager:
         # 15. La plus longue discussion
         with self.driver.session() as session:
             result = session.run("""
-            MATCH (start:Tweet)-[:REPLY_TO*]->(end:Tweet)
-            WITH start, end, LENGTH(SHORTEST_PATH((start)-[:REPLY_TO*]->(end))) AS length
+            MATCH p=(start:Tweet)-[:REPLY_TO*]->(end:Tweet)
+            WHERE NOT (start)-[:REPLY_TO]->() AND NOT ()-[:REPLY_TO]->(end)
+            RETURN start.id AS startTweetId, end.id AS endTweetId, LENGTH(p) as length
             ORDER BY length DESC
             LIMIT 1
-            RETURN start.id AS startTweetId, end.id AS endTweetId, length
             """)
             return result.single()
 
@@ -85,6 +85,27 @@ class Neo4jManager:
             ORDER BY length DESC
             """)
             return [record.data() for record in result]
+
+    def execute_queries(self):
+        # Initialiser un dictionnaire pour stocker les résultats des requêtes
+        query_results = {}
+
+        user_name = 'Spinomade'
+        
+        # Exécuter chaque fonction de requête et stocker les résultats
+        query_results['followers_count'] = self.get_followers_count(user_name)
+        query_results['following_count'] = self.get_following_count(user_name)
+        query_results['followers_of_spinomade'] = self.get_followers_of_spinomade()
+        query_results['followed_by_spinomade'] = self.get_followed_by_spinomade()
+        query_results['mutual_followers_of_spinomade'] = self.get_mutual_followers_of_spinomade()
+        query_results['users_with_over_10_followers'] = self.get_users_with_over_10_followers()
+        query_results['users_following_more_than_5'] = self.get_users_following_more_than_5()
+        query_results['tweets_initiating_discussion'] = self.get_tweets_initiating_discussion()
+        query_results['longest_discussion'] = self.get_longest_discussion()
+        query_results['discussions_start_end'] = self.get_discussions_start_end()
+
+        # Retourner les résultats de toutes les requêtes
+        return query_results
 
     def close(self):
         self.driver.close()
