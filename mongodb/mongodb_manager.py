@@ -8,19 +8,27 @@ class MongoDBManager:
         self.db = None
 
     def connect(self):
-        # Établir la connexion à MongoDB
+        # Établissement de la connexion à la base de données MongoDB.
         self.client = MongoClient("mongodb+srv://frangiessono1:ohADwBLcW5IIgQnl@cluster442.cadx49i.mongodb.net/")
         self.db = self.client.dbnowsql
 
+    # Diverses méthodes pour interroger la base de données MongoDB.
+    # Chaque méthode récupère des données spécifiques ou effectue un calcul basé sur la collection cible.
+
     def get_user_count(self):
+        # Retourne le nombre total d'utilisateurs.
         return self.db.tw_user.count_documents({})
 
     def get_tweet_count(self):
+        # Retourne le nombre total de tweets.
         return self.db.tweet.count_documents({})
 
     def get_hashtag_count(self):
+        # Calcule le nombre total de hashtags uniques.
         return self.db.tweet_hashtag.aggregate([{"$unwind": "$hashtag"}, {"$count": "total_hashtags"}])
 
+    # Les méthodes suivantes implémentent des requêtes plus complexes, telles que la récupération des tweets initiants une discussion, le calcul des hashtags les plus populaires, etc.
+    
     def get_tweets_with_hashtag(self, hashtag):
         return self.db.tweet_hashtag.count_documents({"hashtag": hashtag})
 
@@ -65,12 +73,7 @@ class MongoDBManager:
     def get_user_info_by_id(self, user_id):
         # Cherchez l'utilisateur par son ID et retournez les informations nécessaires
         user = self.db.tw_user.find_one({"idUser": user_id}, {"_id": 0, "name": 1, "nbFollowers": 1, "description": 1})
-        return user  # Assurez-vous que cet objet contient 'name', 'followersCount', et 'description'
-
-    # def get_top_10_influencers(self):
-    #     # Retourne les utilisateurs triés par leur nombre de followers décroissant
-    #     influencers = list(self.db.tw_user.find({}).sort("nbFollowers", -1).limit(10))
-    #     return influencers
+        return user
 
     def get_users_with_over_10_followers(self):
         # Récupérer les utilisateurs ayant plus de 10 followers
@@ -156,10 +159,10 @@ class MongoDBManager:
         return discussions
 
     def execute_queries(self):
-        # Initialiser un dictionnaire pour stocker les résultats des requêtes
+        # Exécute toutes les requêtes définies et stocke leurs résultats dans un dictionnaire pour une récupération facile.
         query_results = {}
 
-        # Exécuter chaque fonction de requête et stocker les résultats
+        # Appel de chaque fonction définie pour récupérer les données spécifiques et stockage des résultats.
         query_results['user_count'] = self.get_user_count()
         query_results['tweet_count'] = self.get_tweet_count()
         query_results['hashtag_count'] = next(self.get_hashtag_count(), {}).get('total_hashtags', 0)
@@ -178,4 +181,5 @@ class MongoDBManager:
         return query_results
 
     def close(self):
+        # Ferme la connexion au client MongoDB.
         self.client.close()

@@ -3,12 +3,12 @@ socionoel: 1225 mentions
 lt: 33 mentions
 philonoel: 15 mentions
 sociologie: 11 mentions
-management: 8 mentions
 histonoel: 8 mentions
-day2: 5 mentions
-ff: 5 mentions
+management: 8 mentions
 day3: 5 mentions
-fn: 4 mentions
+ff: 5 mentions
+day2: 5 mentions
+day10: 4 mentions
 
 La plus longue discussion est initiée par le tweet :
 'que musulmans dont aucun n'a su totalement repousser cet héritage"' avec 6 réponses.

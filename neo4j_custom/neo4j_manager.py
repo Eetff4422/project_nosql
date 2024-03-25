@@ -9,12 +9,16 @@ class Neo4jManager:
         self.mongodb_manager = MongoDBManager()
 
     def connect(self):
+        # Connexion au serveur Neo4j en utilisant les identifiants fournis.
         uri = "neo4j+s://dc15bb96.databases.neo4j.io"
         user = "neo4j"
         password = "xZLEUi-SSuZkCSafSdxd7qtJJGHRDTmVRZNBzDAYc58"
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.mongodb_manager.connect()
 
+    # Définition de diverses méthodes pour interroger Neo4j.
+    # Chaque méthode lance une requête Cypher spécifique pour récupérer ou calculer des informations à partir de la base de données graphique.
+        
     def get_followers_count(self, user_name):
         user_id = str(self.mongodb_manager.get_user_id_by_name(user_name))
         
@@ -71,15 +75,13 @@ class Neo4jManager:
         return mutual_names  # Liste des noms des utilisateurs qui sont à la fois followers et followees de Spinomade
 
     def execute_queries(self):
-        # Initialiser un dictionnaire pour stocker les résultats des requêtes
+        # Cette méthode orchestre l'exécution de toutes les requêtes définies et compile leurs résultats.
         query_results = {}
-
-        #user_id = '129479601'
-        user_name = 'Spinomade'
         
-        # Exécuter chaque fonction de requête et stocker les résultats
-        query_results['followers_count'] = self.get_followers_count(user_name)
-        query_results['following_count'] = self.get_following_count(user_name)
+        # La logique pour exécuter les requêtes spécifiques et collecter les résultats.
+        # Les résultats sont organisés dans un dictionnaire pour un accès facile.
+        query_results['followers_count'] = self.get_followers_count('Spinomade')
+        query_results['following_count'] = self.get_following_count('Spinomade')
         query_results['followers_of_spinomade'] = self.get_followers_of_spinomade()
         query_results['followed_by_spinomade'] = self.get_followed_by_spinomade()
         query_results['mutual_followers_of_spinomade'] = self.get_mutual_followers_of_spinomade()
@@ -88,4 +90,5 @@ class Neo4jManager:
         return query_results
 
     def close(self):
+        # Fermeture de la connexion au serveur Neo4j.
         self.driver.close()

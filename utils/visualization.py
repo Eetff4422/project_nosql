@@ -1,79 +1,81 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
+from mongodb.mongodb_manager import MongoDBManager
+import plotly.graph_objects as go
 
-def visualize_mongodb_data(data):
-    plt.figure(figsize=(15, 10))
-    plt.suptitle('Visualisations des Données MongoDB')
+class Visualizer:
+    def __init__(self, mongo_data, neo4j_data):
+        # Stocke les données récupérées pour une utilisation dans les méthodes de visualisation.
+        self.mongo_data = mongo_data
+        self.neo4j_data = neo4j_data
+        self.mongodb_manager = MongoDBManager()
 
-    # Nombre d'utilisateurs et de tweets
-    plt.subplot(2, 3, 1)
-    categories = ['user_count', 'tweet_count']
-    counts = [data.get('user_count', 0), data.get('tweet_count', 0)]
-    sns.barplot(x=categories, y=counts)
 
-    plt.title("Nombre d'Utilisateurs et de Tweets")
-    plt.ylabel('Nombre')
+    def visualize_mongodb_data(self):
+        # Visualisation des statistiques générales récupérées de MongoDB.
+        data = [
+            self.mongo_data['user_count'],
+            self.mongo_data['tweet_count'],
+            self.mongo_data['hashtag_count']
+        ]
+        labels = ['Utilisateurs', 'Tweets', 'Hashtags']
+        plt.figure(figsize=(8, 6))
+        plt.bar(labels, data)
+        plt.title("Nombre d'utilisateurs, de tweets et de hashtags")
+        plt.show()
 
-    # Nombre total d'hashtags
-    plt.subplot(2, 3, 2)
-    plt.bar(['Total Hashtags'], [data.get('hashtag_count', 0)])
-    plt.title("Nombre Total d'Hashtags")
-    plt.ylabel('Nombre')
-
-    # Tweets avec des hashtags spécifiques
-    plt.subplot(2, 3, 3)
-    hashtags = ['actualite', 'valls']
-    hashtag_counts = [data.get('tweets_with_hashtag_actualite', 0), data.get('unique_users_for_hashtag_valls', 0)]
-    sns.barplot(x=hashtags, y=hashtag_counts)
-    plt.title("Nombre de Tweets par Hashtag Spécifique")
-    plt.ylabel('Nombre')
-
-    # Les 10 tweets les plus populaires (basés sur les favoris)
-    if 'top_10_popular_tweets' in data:
-        tweets_data = data['top_10_popular_tweets']
-        tweet_labels = [tweet['text'][:10] + '...' if 'text' in tweet else 'NoText' for tweet in tweets_data]
-        favorite_counts = [tweet['nbFavorites'] if 'nbFavorites' in tweet else 0 for tweet in tweets_data]
-
-        plt.subplot(2, 3, 4)  # Ajustez selon la disposition souhaitée
-        sns.barplot(x=tweet_labels, y=favorite_counts)
-        plt.title('Top 10 Tweets Populaires')
-        plt.xlabel('Tweets')
-        plt.ylabel('Nombre de Favoris')
+        # Visualisation des 10 hashtags les plus populaires.
+        top_hashtags = self.mongo_data['top_10_popular_hashtags']
+        hashtags = [hashtag['_id'] for hashtag in top_hashtags]
+        counts = [hashtag['count'] for hashtag in top_hashtags]
+        plt.figure(figsize=(10, 6))
+        plt.bar(hashtags, counts)
+        plt.title("Les 10 hashtags les plus populaires")
         plt.xticks(rotation=45)
-    
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
+        plt.show()
 
-def visualize_neo4j_data(data):
-    plt.figure(figsize=(15, 10))
-    plt.suptitle('Visualisations des Données Neo4j')
+        # Utilisation de Plotly pour une visualisation plus interactive des tweets populaires.
+        top_tweets = self.mongo_data['top_10_popular_tweets']
+        tweet_texts = [tweet['text'][:50] + '...' if len(tweet['text']) > 50 else tweet['text'] for tweet in top_tweets]  # Tronquer les textes de tweets longs
+        favorites_counts = [tweet['nbFavorites'] for tweet in top_tweets]
+        # Création du graphique
+        fig = go.Figure([
+            go.Bar(
+                x=tweet_texts,  # Les textes des tweets servent d'axe des x
+                y=favorites_counts,  # Les nombres de favoris servent d'axe des y
+                marker=dict(color='rgba(50, 171, 96, 0.6)',
+                            line=dict(color='rgba(50, 171, 96, 1.0)', width=1))
+            )
+        ])
+        # Mise en page du graphique
+        fig.update_layout(
+            title='Les 10 tweets les plus populaires',
+            xaxis_tickangle=-45,
+            xaxis_title='Tweets',
+            yaxis_title='Nombre de Favoris',
+            plot_bgcolor='rgba(245, 246, 249, 1)',
+            showlegend=False
+        )
+        # Afficher le graphique
+        fig.show()
 
-    # Nombre de followers et following pour un utilisateur spécifique
-    plt.subplot(2, 3, 1)
-    categories = ['followers_count', 'following_count']
-    values = [data.get('followers_count', 0), data.get('following_count', 0)]
-    sns.barplot(x=categories, y=values)
-    plt.title("Followers et Following de " + data.get('user_name', 'Utilisateur'))
-    plt.ylabel('Nombre')
-    
-    # Utilisateurs ayant plus de 10 followers
-    plt.subplot(2, 3, 2)
-    names = [user['name'] for user in data['users_with_over_10_followers']]
-    nbFollowers = [user['nbFollowers'] for user in data['users_with_over_10_followers']]
+    def visualize_neo4j_data(self):
+        # Visualisation des relations autour de l'utilisateur 'Spinomade' dans Neo4j.
+        followers_names = self.neo4j_data['followers_of_spinomade']
+        following_names = self.neo4j_data['followed_by_spinomade']
+        mutual_names = self.neo4j_data['mutual_followers_of_spinomade']
 
-    sns.barplot(x=names, y=nbFollowers)
-    plt.title('Utilisateurs avec plus de 10 Followers')
-    plt.xlabel('Utilisateurs')
-    plt.ylabel('Nombre de Followers')
-    plt.xticks(rotation=45)
+        # Créer des ensembles pour faciliter la création du diagramme de Venn
+        followers_set = set(followers_names)
+        following_set = set(following_names)
 
-    # Utilisateurs suivis par plus de 5 utilisateurs
-    plt.subplot(2, 3, 3)
-    sns.barplot(x=list(range(len(data['users_following_more_than_5']))), y=data['users_following_more_than_5'])
-    plt.title('Utilisateurs suivant plus de 5 personnes')
-    plt.xlabel('Utilisateurs')
-    plt.ylabel('Nombre suivis')
-    plt.xticks([])
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
+        # Utilisation de Plotly pour créer un diagramme de barres illustrant les followers, followings et mutual followers.
+        trace_followers = go.Bar(x=list(followers_set), y=[1] * len(followers_set), name='Followers', marker_color='blue')
+        trace_following = go.Bar(x=list(following_set), y=[1] * len(following_set), name='Following', marker_color='red')
+        trace_mutual = go.Bar(x=list(mutual_names), y=[2] * len(mutual_names), name='Mutual Followers', marker_color='green')
+        layout = go.Layout(
+            title='Relations de Spinomade',
+            yaxis=dict(title='Count', tickvals=[1, 2]),
+            xaxis=dict(title='Users')
+        )
+        fig = go.Figure(data=[trace_followers, trace_following, trace_mutual], layout=layout)
+        fig.show()
