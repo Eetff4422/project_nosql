@@ -1,95 +1,80 @@
+# neo4j_manager.py
+
 from neo4j import GraphDatabase
+from mongodb.mongodb_manager import MongoDBManager
 
 class Neo4jManager:
     def __init__(self):
         self.driver = None
+        self.mongodb_manager = MongoDBManager()
 
     def connect(self):
         uri = "neo4j+s://dc15bb96.databases.neo4j.io"
         user = "neo4j"
         password = "xZLEUi-SSuZkCSafSdxd7qtJJGHRDTmVRZNBzDAYc58"
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        self.mongodb_manager.connect()
 
     def get_followers_count(self, user_name):
+        user_id = str(self.mongodb_manager.get_user_id_by_name(user_name))
+        
         with self.driver.session() as session:
-            result = session.run("MATCH (user:User {name: $user_name})<-[:FOLLOWS]-(follower) RETURN count(follower)", user_name=user_name)
+            result = session.run("MATCH (user:User {id: $user_id})<-[:FOLLOWS]-(follower) RETURN count(follower)", user_id=user_id)
             return result.single()[0]
+
 
     def get_following_count(self, user_name):
-        with self.driver.session() as session:
-            result = session.run("MATCH (user:User {name: $user_name})-[:FOLLOWS]->(following) RETURN count(following)", user_name=user_name)
-            return result.single()[0]
+        user_id = str(self.mongodb_manager.get_user_id_by_name(user_name))
+        if user_name:
+            with self.driver.session() as session:
+                result = session.run("MATCH (user:User {id: $user_id})-[:FOLLOWS]->(following) RETURN count(following)", user_id=user_id)
+                return result.single()[0]
+        return 0  # Retournez 0 si aucun nom d'utilisateur n'est trouvé
 
     def get_followers_of_spinomade(self):
-        # 7. Nom des followers de Spinomade
+        spinomade_id = '129479601'  # ID de Spinomade
         with self.driver.session() as session:
-            result = session.run("MATCH (user:User)-[:FOLLOWS]->(spinomade:User {name: 'Spinomade'}) RETURN user.name")
-            return [record["user.name"] for record in result]
+            result = session.run("""
+                MATCH (user:User)-[:FOLLOWS]->(spinomade:User {id: $spinomade_id})
+                RETURN user.id AS userId
+            """, spinomade_id=spinomade_id)
+            followers_ids = [record["userId"] for record in result]
+        
+        # Convertir les ID Neo4j en noms MongoDB
+        followers_names = [self.mongodb_manager.get_user_name_by_id(int(user_id)) for user_id in followers_ids]
+        return followers_names  # Liste des noms des followers
 
     def get_followed_by_spinomade(self):
-        # 8. Nom des utilisateurs suivis par Spinomade
+        spinomade_id = '129479601'  # ID de Spinomade
         with self.driver.session() as session:
-            result = session.run("MATCH (spinomade:User {name: 'Spinomade'})-[:FOLLOWS]->(user:User) RETURN user.name")
-            return [record["user.name"] for record in result]
+            result = session.run("""
+                MATCH (spinomade:User {id: $spinomade_id})-[:FOLLOWS]->(user:User)
+                RETURN user.id AS userId
+            """, spinomade_id=spinomade_id)
+            following_ids = [record["userId"] for record in result]
+        
+        # Convertir les ID Neo4j en noms MongoDB
+        following_names = [self.mongodb_manager.get_user_name_by_id(int(user_id)) for user_id in following_ids]
+        return following_names  # Liste des noms des utilisateurs suivis par Spinomade
 
     def get_mutual_followers_of_spinomade(self):
-        # 9. Utilisateurs qui sont à la fois followers et followees de Spinomade
+        spinomade_id = '129479601'  # ID de Spinomade
         with self.driver.session() as session:
             result = session.run("""
-            MATCH (user:User)-[:FOLLOWS]->(spinomade:User {name: 'Spinomade'})-[:FOLLOWS]->(user)
-            RETURN user.name
-            """)
-            return [record["user.name"] for record in result]
-
-    def get_users_with_over_10_followers(self):
-        # 10. Utilisateurs ayant plus de 10 followers
-        with self.driver.session() as session:
-            result = session.run("MATCH (user:User)<-[:FOLLOWS]-(followers) WITH user, count(followers) AS numFollowers WHERE numFollowers > 10 RETURN user.name")
-            return [record["user.name"] for record in result]
-
-    def get_users_following_more_than_5(self):
-        # 11. Utilisateurs qui suivent plus de 5 utilisateurs
-        with self.driver.session() as session:
-            result = session.run("MATCH (user:User)-[:FOLLOWS]->(following) WITH user, count(following) AS numFollowing WHERE numFollowing > 5 RETURN user.name")
-            return [record["user.name"] for record in result]
-
-    def get_tweets_initiating_discussion(self):
-        # 14. Tweets qui initient une discussion
-        with self.driver.session() as session:
-            result = session.run("""
-            MATCH (tweet:Tweet)-[:REPLY_TO]->(originalTweet:Tweet)
-            WHERE NOT ((originalTweet)-[:REPLY_TO]->())
-            RETURN originalTweet.id AS initiatingTweetId
-            """)
-            return [record["initiatingTweetId"] for record in result]
-
-    def get_longest_discussion(self):
-        # 15. La plus longue discussion
-        with self.driver.session() as session:
-            result = session.run("""
-            MATCH p=(start:Tweet)-[:REPLY_TO*]->(end:Tweet)
-            WHERE NOT (start)-[:REPLY_TO]->() AND NOT ()-[:REPLY_TO]->(end)
-            RETURN start.id AS startTweetId, end.id AS endTweetId, LENGTH(p) as length
-            ORDER BY length DESC
-            LIMIT 1
-            """)
-            return result.single()
-
-    def get_discussions_start_end(self):
-        # 16. Pour chaque conversation, donnez-en le début et la fin
-        with self.driver.session() as session:
-            result = session.run("""
-            MATCH p=(start:Tweet)-[:REPLY_TO*]->(end:Tweet)
-            WHERE NOT ((start)-[:REPLY_TO]->()) AND NOT ((end)<-[:REPLY_TO]-())
-            RETURN start.id AS startTweetId, end.id AS endTweetId, LENGTH(p) as length
-            ORDER BY length DESC
-            """)
-            return [record.data() for record in result]
+                MATCH (user:User)-[:FOLLOWS]->(spinomade:User {id: $spinomade_id})-[:FOLLOWS]->(user)
+                RETURN user.id AS userId
+            """, spinomade_id=spinomade_id)
+            mutual_ids = [record["userId"] for record in result]
+        
+        # Convertir les ID Neo4j en noms MongoDB
+        mutual_names = [self.mongodb_manager.get_user_name_by_id(int(user_id)) for user_id in mutual_ids]
+        return mutual_names  # Liste des noms des utilisateurs qui sont à la fois followers et followees de Spinomade
 
     def execute_queries(self):
         # Initialiser un dictionnaire pour stocker les résultats des requêtes
         query_results = {}
 
+        #user_id = '129479601'
         user_name = 'Spinomade'
         
         # Exécuter chaque fonction de requête et stocker les résultats
@@ -98,11 +83,6 @@ class Neo4jManager:
         query_results['followers_of_spinomade'] = self.get_followers_of_spinomade()
         query_results['followed_by_spinomade'] = self.get_followed_by_spinomade()
         query_results['mutual_followers_of_spinomade'] = self.get_mutual_followers_of_spinomade()
-        query_results['users_with_over_10_followers'] = self.get_users_with_over_10_followers()
-        query_results['users_following_more_than_5'] = self.get_users_following_more_than_5()
-        query_results['tweets_initiating_discussion'] = self.get_tweets_initiating_discussion()
-        query_results['longest_discussion'] = self.get_longest_discussion()
-        query_results['discussions_start_end'] = self.get_discussions_start_end()
 
         # Retourner les résultats de toutes les requêtes
         return query_results

@@ -1,6 +1,7 @@
 from mongodb.mongodb_manager import MongoDBManager
 from neo4j_custom.neo4j_manager import Neo4jManager
 from utils.visualization import visualize_mongodb_data, visualize_neo4j_data
+from utils.data_analysis import generate_report
 
 class App:
     def __init__(self):
@@ -21,10 +22,14 @@ class App:
         neo4j_data = self.neo4j_manager.execute_queries()
 
         # Visualiser les données MongoDB
-        visualize_mongodb_data(mongo_data)
+        #visualize_mongodb_data(mongo_data)
 
         # Visualiser les données Neo4j
-        visualize_neo4j_data(neo4j_data)
+        #visualize_neo4j_data(neo4j_data)
+
+        # Générer un rapport basique
+        generate_report(mongo_data, neo4j_data)
+
 
         # Fermer les connexions
         self.mongodb_manager.close()

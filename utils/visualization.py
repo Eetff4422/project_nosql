@@ -58,11 +58,14 @@ def visualize_neo4j_data(data):
     
     # Utilisateurs ayant plus de 10 followers
     plt.subplot(2, 3, 2)
-    sns.barplot(x=list(range(len(data['users_with_over_10_followers']))), y=data['users_with_over_10_followers'])
+    names = [user['name'] for user in data['users_with_over_10_followers']]
+    nbFollowers = [user['nbFollowers'] for user in data['users_with_over_10_followers']]
+
+    sns.barplot(x=names, y=nbFollowers)
     plt.title('Utilisateurs avec plus de 10 Followers')
     plt.xlabel('Utilisateurs')
     plt.ylabel('Nombre de Followers')
-    plt.xticks([])
+    plt.xticks(rotation=45)
 
     # Utilisateurs suivis par plus de 5 utilisateurs
     plt.subplot(2, 3, 3)
