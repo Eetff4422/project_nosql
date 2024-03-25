@@ -1,4 +1,10 @@
 # mongodb_manager.py
+"""Ce fichier contient la classe MongoDBManager,
+qui gère la connexion à une base de données MongoDB et
+fournit des méthodes pour exécuter diverses requêtes sur les collections de données.
+Les méthodes couvrent un large éventail de fonctionnalités,
+de la récupération des nombres de base (utilisateurs, tweets, hashtags)
+à des requêtes plus complexes pour analyser les données de tweet."""
 
 from pymongo import MongoClient
 

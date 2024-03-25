@@ -1,3 +1,9 @@
+"""Dans visualization.py, la classe Visualizer est définie pour créer
+des visualisations des données récupérées à partir de MongoDB et Neo4j.
+La bibliothèque matplotlib est utilisée pour des visualisations de base,
+tandis que plotly est employée pour des graphiques interactifs plus avancés."""
+
+
 import matplotlib.pyplot as plt
 from mongodb.mongodb_manager import MongoDBManager
 import plotly.graph_objects as go

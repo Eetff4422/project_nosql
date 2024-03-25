@@ -1,4 +1,10 @@
 # neo4j_manager.py
+"""Le fichier neo4j_manager.py encapsule la logique de connexion à Neo4j et
+    fournit une série de méthodes pour exécuter des requêtes Cypher spécifiques.
+    Ces requêtes permettent d'extraire ou de calculer des informations
+    à partir de la base de données graphique, telles que
+    le nombre de followers d'un utilisateur,
+    les relations entre les utilisateurs, etc."""
 
 from neo4j import GraphDatabase
 from mongodb.mongodb_manager import MongoDBManager
