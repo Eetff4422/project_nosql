@@ -1,0 +1,4 @@
+Lien vers le dépôt git contenant le projet : 
+https://github.com/Eetff4422/project_nosql/tree/main
+
+Sur ce répertoire vous trouverez également un dossier ‘réponses_aux_questions’ contenant les réponses aux questions posées.

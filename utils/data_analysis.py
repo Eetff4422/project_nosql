@@ -18,7 +18,7 @@ def generate_report(mongo_data, neo4j_data):
     report_lines.append("\nLa plus longue discussion est initiée par le tweet :\n")
     if longest_discussion:
         # Si une discussion existe, ajoute son texte et le nombre de réponses au rapport.
-        report_lines.append(f"'{longest_discussion['initiatingTweetText']}' avec {longest_discussion['responseCount']} réponses.\n")
+        report_lines.append(f"'{longest_discussion['initiatingTweetText']}'\n")
     else:
         report_lines.append("Aucune discussion longue n'a été trouvée.\n")
 
@@ -33,7 +33,7 @@ def generate_report(mongo_data, neo4j_data):
         report_lines.append(f"- {influencer['name']} avec {influencer['nbFollowers']} followers. Description: {influencer.get('description', 'Pas de description')} \n")
 
     # Écrit le rapport complet dans un fichier texte.
-    with open('analysis_report.txt', 'w', encoding='utf-8') as f:
+    with open('rapports/analysis_report.txt', 'w', encoding='utf-8') as f:
         f.writelines(report_lines)
 
     print("Rapport d'analyse généré dans analysis_report.txt.")

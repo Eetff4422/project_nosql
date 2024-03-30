@@ -26,7 +26,27 @@ class Visualizer:
         labels = ['Utilisateurs', 'Tweets', 'Hashtags']
         plt.figure(figsize=(8, 6))
         plt.bar(labels, data)
-        plt.title("Nombre d'utilisateurs, de tweets et de hashtags")
+        plt.title("Questions 1,2 et 3")
+        plt.show()
+
+        data = [
+            len(self.mongo_data['users_with_over_10_followers']),
+            len(self.mongo_data['users_following_more_than_5'])
+        ]
+        labels = ['users with over 10 followers', 'users following more than 5']
+        plt.figure(figsize=(8, 6))
+        plt.bar(labels, data)
+        plt.title("Questions 10 et 11")
+        plt.show()
+
+        data = [
+            self.mongo_data['tweets_with_hashtag_actualite'],
+            self.mongo_data['unique_users_for_hashtag_valls']
+        ]
+        labels = ['tweets with hashtag actualite', 'unique users for hashtag valls']
+        plt.figure(figsize=(8, 6))
+        plt.bar(labels, data)
+        plt.title("Questions 4 et 5")
         plt.show()
 
         # Visualisation des 10 hashtags les plus populaires.
@@ -35,7 +55,7 @@ class Visualizer:
         counts = [hashtag['count'] for hashtag in top_hashtags]
         plt.figure(figsize=(10, 6))
         plt.bar(hashtags, counts)
-        plt.title("Les 10 hashtags les plus populaires")
+        plt.title("Question 13 : Les 10 hashtags les plus populaires")
         plt.xticks(rotation=45)
         plt.show()
 
@@ -54,7 +74,7 @@ class Visualizer:
         ])
         # Mise en page du graphique
         fig.update_layout(
-            title='Les 10 tweets les plus populaires',
+            title='Question 12: Les 10 tweets les plus populaires',
             xaxis_tickangle=-45,
             xaxis_title='Tweets',
             yaxis_title='Nombre de Favoris',
@@ -79,7 +99,7 @@ class Visualizer:
         trace_following = go.Bar(x=list(following_set), y=[1] * len(following_set), name='Following', marker_color='red')
         trace_mutual = go.Bar(x=list(mutual_names), y=[2] * len(mutual_names), name='Mutual Followers', marker_color='green')
         layout = go.Layout(
-            title='Relations de Spinomade',
+            title='Questions 7, 8 et 9: Relations de Spinomade',
             yaxis=dict(title='Count', tickvals=[1, 2]),
             xaxis=dict(title='Users')
         )

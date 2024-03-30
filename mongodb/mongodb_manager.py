@@ -41,9 +41,22 @@ class MongoDBManager:
     def get_unique_users_for_hashtag(self, hashtag):
         return len(self.db.tweet_hashtag.distinct("idTweet", {"hashtag": hashtag}))
 
+    # def get_tweets_as_replies(self):
+    #     # 6. Tweets qui sont des réponses à un autre tweet
+    #     return list(self.db.tweet.find({"replyIdTweet": {"$exists": True, "$ne": 0}}))
+
     def get_tweets_as_replies(self):
-        # 6. Tweets qui sont des réponses à un autre tweet
-        return list(self.db.tweet.find({"replyIdTweet": {"$exists": True, "$ne": ""}}))
+        # Recherche des tweets qui sont des réponses à d'autres tweets.
+        tweets_as_replies = self.db.tweet.find({"replyIdTweet": {"$ne": ""}})
+        replies_info = []
+        for tweet in tweets_as_replies:
+            try:
+                tweet["replyIdTweetFloat"] = float(tweet["replyIdTweet"])
+                replies_info.append(tweet)
+            except ValueError:
+                # Gérer le cas où la conversion en flottant échoue (si la chaîne ne représente pas un nombre valide)
+                continue
+        return replies_info
 
     def get_top_10_popular_tweets(self):
         # 12. Les 10 tweets les plus populaires
@@ -61,7 +74,7 @@ class MongoDBManager:
     def get_tweets_initiating_discussion(self):
         # Cette fonction retourne les tweets qui initient une discussion
         # On recherche tous les tweets qui ne sont pas des réponses mais qui ont des réponses
-        initiating_tweets = list(self.db.tweet.find({"replyIdTweet": {"$exists": False}}))
+        initiating_tweets = list(self.db.tweet.find({"replyIdTweet": 0}))
         
         # Créer une liste pour stocker les informations des tweets initiateurs
         initiating_tweets_info = []
@@ -103,64 +116,131 @@ class MongoDBManager:
         user = self.db.tw_user.find_one({"name": user_name})
         return user['idUser'] if user else None
 
-    def get_longest_discussion(self):
+    def get_longest_discussion(self):#not yet
         # Question 15
-        # Cette fonction retourne la plus longue discussion en termes de nombre de réponses en chaîne.
+        # Construction du pipeline d'agrégation
         pipeline = [
-            {"$match": {"replyIdTweet": {"$exists": True}}},  # Trouver tous les tweets qui sont des réponses
-            {"$group": {
-                "_id": "$replyIdTweet",  # Grouper par le tweet auquel ils répondent
-                "count": {"$sum": 1}  # Compter le nombre de réponses
-            }},
-            {"$sort": {"count": -1}},  # Trier pour trouver le plus grand nombre de réponses
-            {"$limit": 1},  # Prendre le sommet (le tweet avec le plus de réponses)
-            {"$lookup": {  # Rejoindre avec la collection originale pour trouver le tweet initial
-                "from": "tweet",
-                "localField": "_id",
-                "foreignField": "idTweet",
-                "as": "initiatingTweet"
-            }},
-            {"$unwind": "$initiatingTweet"}  # Déballer le résultat du lookup
+            {
+                "$match": {
+                    "replyIdTweet": {"$ne": 0}
+                }
+            },
+            {
+                    "$group": {
+                    "_id": "$replyIdTweet",
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"count": -1}
+            },
+            {
+                "$limit": 1
+            },
+            {
+                "$lookup": {
+                    "from": "tweet",
+                    "localField": "_id",
+                    "foreignField": "idTweet",
+                    "as": "discussion"
+                }
+            },
+            {
+                "$unwind": "$discussion"
+            },
+            {
+                "$project": {
+                    "_id": "$discussion._id",
+                    "text": "$discussion.text"
+                }
+            }
         ]
+
+        # Exécution du pipeline d'agrégation
         result = list(self.db.tweet.aggregate(pipeline))
+
         if result:
             # Extraire le tweet initial et le nombre de réponses
             longest_discussion = result[0]
             return {
                 "initiatingTweetId": longest_discussion["_id"],
-                "initiatingTweetText": longest_discussion["initiatingTweet"].get("text", ""),
-                "responseCount": longest_discussion["count"]
+                "initiatingTweetText": longest_discussion.get("text", "")
             }
         return None
 
-
-
-    def get_discussions_start_end(self):
+    def get_discussions_start_end(self): #not yet
         # Question 16
-        # Cette fonction trouve le début et la fin de chaque discussion basée sur les réponses directes
         pipeline = [
-            {"$match": {"replyIdTweet": {"$exists": False}}},  # Sélectionner les tweets qui initient des discussions
-            {"$lookup": {  # Rechercher toutes les réponses directes à ces tweets
-                "from": "tweet",
-                "localField": "idTweet",
-                "foreignField": "replyIdTweet",
-                "as": "replies"
-            }},
-            {"$project": {  # Projeter les informations nécessaires
-                "startTweetId": "$idTweet",
-                "startTweetText": "$text",
-                "endTweetId": {"$arrayElemAt": ["$replies.idTweet", -1]},  # Assumer que le dernier dans la liste est la fin
-                "numReplies": {"$size": "$replies"}  # Nombre de réponses directes
-            }},
-            {"$match": {"numReplies": {"$gt": 0}}}  # Filtrer pour ne garder que les discussions avec au moins une réponse
+            {
+                "$group": {
+                    "_id": "$replyIdTweet",
+                    "conversationStart": {"$min": "$createdAt"},
+                    "conversationEnd": {"$max": "$createdAt"}
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "tweet",
+                    "let": {"reply_id": "$_id", "start_date": "$conversationStart"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$replyIdTweet", "$$reply_id"]},
+                                        {"$eq": ["$createdAt", "$$start_date"]}
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "$project": {"text": 1, "createdAt": 1}
+                        }
+                    ],
+                    "as": "start_tweet"
+                }
+            },
+            {
+                "$unwind": "$start_tweet"
+            },
+            {
+                "$lookup": {
+                    "from": "tweet",
+                    "let": {"reply_id": "$_id", "end_date": "$conversationEnd"},
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$eq": ["$replyIdTweet", "$$reply_id"]},
+                                        {"$eq": ["$createdAt", "$$end_date"]}
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "$project": {"text": 1, "createdAt": 1}
+                        }
+                    ],
+                    "as": "end_tweet"
+                }
+            },
+            {
+                "$unwind": "$end_tweet"
+            },
+            {
+                "$project": {
+                    "startText": "$start_tweet.text",
+                    "startDate": "$start_tweet.createdAt",
+                    "endText": "$end_tweet.text",
+                    "endDate": "$end_tweet.createdAt"
+                }
+            }
         ]
-        discussions = list(self.db.tweet.aggregate(pipeline))
 
-        # Pour chaque discussion, trouvez le texte du dernier tweet
-        for discussion in discussions:
-            if discussion["endTweetId"]:  # S'il y a une fin de discussion identifiée
-                end_tweet = self.db.tweet.find_one({"idTweet": discussion["endTweetId"]})
-                discussion["endTweetText"] = end_tweet.get("text", "") if end_tweet else ""
+
+        # Exécution du pipeline d'agrégation
+        discussions = list(self.db.tweet.aggregate(pipeline))
 
         return discussions
 

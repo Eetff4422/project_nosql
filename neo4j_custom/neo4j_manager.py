@@ -25,22 +25,6 @@ class Neo4jManager:
     # Définition de diverses méthodes pour interroger Neo4j.
     # Chaque méthode lance une requête Cypher spécifique pour récupérer ou calculer des informations à partir de la base de données graphique.
         
-    def get_followers_count(self, user_name):
-        user_id = str(self.mongodb_manager.get_user_id_by_name(user_name))
-        
-        with self.driver.session() as session:
-            result = session.run("MATCH (user:User {id: $user_id})<-[:FOLLOWS]-(follower) RETURN count(follower)", user_id=user_id)
-            return result.single()[0]
-
-
-    def get_following_count(self, user_name):
-        user_id = str(self.mongodb_manager.get_user_id_by_name(user_name))
-        if user_name:
-            with self.driver.session() as session:
-                result = session.run("MATCH (user:User {id: $user_id})-[:FOLLOWS]->(following) RETURN count(following)", user_id=user_id)
-                return result.single()[0]
-        return 0  # Retournez 0 si aucun nom d'utilisateur n'est trouvé
-
     def get_followers_of_spinomade(self):
         spinomade_id = '129479601'  # ID de Spinomade
         with self.driver.session() as session:
@@ -86,8 +70,6 @@ class Neo4jManager:
         
         # La logique pour exécuter les requêtes spécifiques et collecter les résultats.
         # Les résultats sont organisés dans un dictionnaire pour un accès facile.
-        query_results['followers_count'] = self.get_followers_count('Spinomade')
-        query_results['following_count'] = self.get_following_count('Spinomade')
         query_results['followers_of_spinomade'] = self.get_followers_of_spinomade()
         query_results['followed_by_spinomade'] = self.get_followed_by_spinomade()
         query_results['mutual_followers_of_spinomade'] = self.get_mutual_followers_of_spinomade()
