@@ -1,6 +1,6 @@
 # Application de Suivi de Tweets et d'Analyse des Réseaux Sociaux
 
-Notre application est un outil puissant qui permet d'analyser les tendances sur Twitter. Elle est parfaite pour voir comment les gens interagissent et se suivent entre eux, ainsi que pour observer l'influence et la popularité des tweets et des retweets. On utilise MongoDB pour gérer toutes les infos sur les utilisateurs et leurs tweets sans souci. Et avec Neo4j, on peut visualiser les liens entre les abonnements et suivre les conversations. En gros, l'application est super pour comprendre ce qui se passe sur Twitter et découvrir qui sont les utilisateurs les plus influents.
+Notre application est un outil qui permet d'analyser les tendances sur Twitter. Elle permet de voir comment les gens interagissent et se suivent entre eux, et permet également d'observer l'influence et la popularité des tweets et des retweets. On utilise MongoDB pour gérer toutes les infos sur les utilisateurs et leurs tweets sans souci. Et avec Neo4j, on peut visualiser les liens entre les abonnements et suivre les conversations. En gros, l'application aide à comprendre ce qui se passe sur Twitter et découvrir qui sont les utilisateurs les plus influents.
 
 ## Configuration des Bases de Données
 
